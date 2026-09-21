@@ -138,7 +138,7 @@ while(True):
             cur_weather = new_weather
         if cur_weather is not None:
             fahrenheit = cur_weather[0] * 9 / 5 + 32
-            hour_pwm.duty_u16(degree2servo(cur_weather[1] / 100 * 180))
+            hour_pwm.duty_u16(degree2servo(cur_weather[1] /100 * 150 + 15))
             min_pwm.duty_u16(degree2servo(fahrenheit / 100 * 180))
             
     if clock_mode:
