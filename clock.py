@@ -128,7 +128,7 @@ while(True):
         if time_synced:
             tm = time.localtime()
             hour = tm[3] + tm[4] / 60 + tm[5] / 3600
-            hour_pwm.duty_u16(degree2servo(hour / 24 * 180))
+            hour_pwm.duty_u16(degree2servo(hour / 24 * 150 + 15))
             minute = tm[4] + tm[5] / 60
             min_pwm.duty_u16(degree2servo(minute / 60 * 180))
     else: # alt mode
