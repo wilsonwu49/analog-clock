@@ -5,8 +5,8 @@ import urequests
 import time
 
 ## Initial Variables
-SSID = "tufts_eecs" #use tufts_eecs
-PASSWORD = "foundedin1883" #foundedin1883
+SSID = "Tufts_Wireless" #use tufts_eecs
+PASSWORD = None #foundedin1883
 
 btn = machine.Pin(34, machine.Pin.IN, machine.Pin.PULL_UP)
 DEBOUNCE_MS = 100
@@ -19,7 +19,7 @@ CLOCK_MS = 60_000
 cur_time = None
 time_synced = False
 
-WEATHER_URL = "http://api.open-meteo.com/v1/forecast?latitude=42.425&longitude=-71.110&current=apparent_temperature,cloud_cover"
+WEATHER_URL = "http://api.open-meteo.com/v1/forecast?latitude=42.425&longitude=-71.110&current=apparent_temperature,relative_humidity_2m"
 weather_last_press = 0
 WEATHER_MS = 60_000
 cur_weather = None
@@ -109,7 +109,7 @@ def weather_handler():
     
     weather_fail = 0
     print("weather synced")
-    return weather_data["current"]["apparent_temperature"], weather_data["current"]["cloud_cover"]
+    return weather_data["current"]["apparent_temperature"], weather_data["current"]["relative_humidity_2m"]
 
 ## Setup
 btn.irq(trigger=machine.Pin.IRQ_FALLING, handler=button_handler)
@@ -128,9 +128,9 @@ while(True):
         if time_synced:
             tm = time.localtime()
             hour = tm[3] + tm[4] / 60 + tm[5] / 3600
-            hour_pwm.duty_u16(degree2servo(hour / 24 * 150 + 15))
+            hour_pwm.duty_u16(degree2servo((24 - hour) / 24 * 150 + 15))
             minute = tm[4] + tm[5] / 60
-            min_pwm.duty_u16(degree2servo(minute / 60 * 180))
+            min_pwm.duty_u16(degree2servo((60 - minute) / 60 * 180))
     else: # alt mode
         lights[0] = (0,50,50)
         new_weather = weather_handler()
@@ -138,8 +138,8 @@ while(True):
             cur_weather = new_weather
         if cur_weather is not None:
             fahrenheit = cur_weather[0] * 9 / 5 + 32
-            hour_pwm.duty_u16(degree2servo(cur_weather[1] /100 * 150 + 15))
-            min_pwm.duty_u16(degree2servo(fahrenheit / 100 * 180))
+            hour_pwm.duty_u16(degree2servo((100 - cur_weather[1]) /100 * 150 + 15))
+            min_pwm.duty_u16(degree2servo((100 - fahrenheit) / 100 * 180))
             
     if clock_mode:
         has_data = time_synced
@@ -159,11 +159,19 @@ while(True):
     if time.ticks_diff(now, last_print) >= PRINT_MS:
         last_print = now
         tm = time.localtime()
+
         if cur_weather is None:
-            wx = "wx --"
+            reading = "no weather yet"
         else:
-            wx = "wx %.1fC/%.0fF  cloud %d%%" % (cur_weather[0], cur_weather[0] * 9 / 5 + 32, cur_weather[1])
-        print("%02d:%02d:%02d  %-7s  %s  fails=%d" % (tm[3], tm[4], tm[5],"clock" if clock_mode else "weather",wx, fails))
+            reading = "%.0fF, %d%% humidity" % (
+                cur_weather[0] * 9 / 5 + 32, cur_weather[1])
+
+        trouble = "" if fails == 0 else "   [%d failed]" % fails
+
+        print("%02d:%02d:%02d  %s  %s%s" % (
+            tm[3], tm[4], tm[5],
+            "clock  " if clock_mode else "weather",
+            reading, trouble))
     time.sleep_ms(20)
     
 hour_pwm.deinit()
